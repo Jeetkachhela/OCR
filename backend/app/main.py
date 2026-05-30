@@ -1,8 +1,7 @@
 import uvicorn
 import time
 import logging
-from fastapi import FastAPI, Request, HTTPException, status, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, Response, HTTPException, status, WebSocket, WebSocketDisconnect
 from typing import List
 
 # Import core configurations and session
@@ -36,14 +35,41 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-# CORS security configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
+# Custom Premium Dynamic CORS Middleware
+@app.middleware("http")
+async def custom_cors_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    allowed = False
+    
+    if origin:
+        # Check if the origin matches our allowed patterns
+        if origin in settings.cors_origins:
+            allowed = True
+        elif origin.endswith(".vercel.app") or origin.endswith(".onrender.com"):
+            allowed = True
+        elif "localhost" in origin or "127.0.0.1" in origin:
+            allowed = True
+
+    # Preflight Request Handler
+    if request.method == "OPTIONS" and origin:
+        response = Response(status_code=204)
+        if allowed:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+            response.headers["Access-Control-Max-Age"] = "86400"
+        return response
+
+    response = await call_next(request)
+    
+    if origin and allowed:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        if request.method != "OPTIONS":
+            response.headers["Access-Control-Expose-Headers"] = "Set-Cookie"
+
+    return response
 
 # Custom Rate Limiter Middleware
 _request_records = {} # sliding window tracking

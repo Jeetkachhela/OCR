@@ -81,7 +81,7 @@ def login(response: Response, request: Request, credentials: UserLogin, db: Sess
         httponly=True,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
+        samesite="none",
         secure=True  # Production-grade HTTPS enforce (browsers allow secure cookies on localhost over HTTP)
     )
 
@@ -110,7 +110,12 @@ def logout(response: Response, current_user: User = Depends(get_current_user), d
     """
     Clears the authentication HTTP-Only cookie, invalidating the session.
     """
-    response.delete_cookie("access_token")
+    response.delete_cookie(
+        "access_token",
+        httponly=True,
+        samesite="none",
+        secure=True
+    )
     
     audit_entry = AuditLog(
         user_id=current_user.id,
