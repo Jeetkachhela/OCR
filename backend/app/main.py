@@ -67,7 +67,24 @@ class DynamicCORSMiddleware(CORSMiddleware):
                     elif isinstance(self.all_origins, list) and origin not in self.all_origins:
                         self.all_origins.append(origin)
 
-        await super().__call__(scope, receive, send)
+        try:
+            await super().__call__(scope, receive, send)
+        except Exception as exc:
+            logger.error(f"Unhandled exception caught in CORS middleware: {exc}", exc_info=True)
+            from fastapi.responses import JSONResponse
+            response = JSONResponse(
+                status_code=500,
+                content={
+                    "detail": "Internal Server Error escaping to ASGI server.",
+                    "error": str(exc),
+                    "type": exc.__class__.__name__
+                }
+            )
+            if origin:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Expose-Headers"] = "Set-Cookie"
+            await response(scope, receive, send)
 
 # Custom Rate Limiter Middleware
 _request_records = {} # sliding window tracking
