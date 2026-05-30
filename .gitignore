@@ -1,0 +1,40 @@
+# Dependency directories
+node_modules/
+backend/venv/
+backend/.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Next.js build directories
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Local database settings and uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/app/core/runtime_settings.json
+backend/check_db.py
+
+# Large datasets archive files
+*.zip
+*.csv
+SROIE2019/
+
+# Environment files containing secrets and connection strings
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+
+# Miscellaneous system files
+.DS_Store
+Thumbs.db
+*.log
+*.pem
