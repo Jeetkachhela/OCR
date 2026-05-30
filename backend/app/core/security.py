@@ -2,25 +2,34 @@ import datetime
 from typing import Optional, Union, Any
 import jwt
 import bcrypt
-
-# Monkeypatch passlib bcrypt bug on modern bcrypt versions
-if not hasattr(bcrypt, "__about__"):
-    class MockAbout:
-        __version__ = getattr(bcrypt, "__version__", "4.0.0")
-    bcrypt.__about__ = MockAbout()
-
-from passlib.context import CryptContext
-from fastapi import Request, HTTPException, status
+from fastapi import Request
 from app.core.config import settings
 
-# Initialize CryptContext for bcrypt password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Hashing is performed directly using the native 'bcrypt' package to prevent
+# unmaintained passlib library errors on newer bcrypt versions (e.g. bcrypt 5.0.0+).
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    """
+    Hashes a plain-text password using native bcrypt.
+    """
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password_bytes, salt).decode("utf-8")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """
+    Verifies a plain-text password against a bcrypt hash.
+    Supports standard passlib/bcrypt hashes seamlessly.
+    """
+    try:
+        password_bytes = plain_password.encode("utf-8")
+        if len(password_bytes) > 72:
+            password_bytes = password_bytes[:72]
+        return bcrypt.checkpw(password_bytes, hashed_password.encode("utf-8"))
+    except Exception:
+        return False
 
 def create_access_token(data: dict, expires_delta: Optional[datetime.timedelta] = None) -> str:
     to_encode = data.copy()
