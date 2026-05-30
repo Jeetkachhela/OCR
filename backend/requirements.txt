@@ -12,5 +12,6 @@ groq
 requests
 qdrant-client
 cloudinary
+email-validator
 
 

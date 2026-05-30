@@ -7,7 +7,10 @@ from app.core.config import settings
 logger = logging.getLogger("cloudinary_service")
 
 # Ensure local uploads directory exists for fallback operations
-LOCAL_UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+if os.name != "nt":
+    LOCAL_UPLOAD_DIR = "/tmp/uploads"
+else:
+    LOCAL_UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
 os.makedirs(LOCAL_UPLOAD_DIR, exist_ok=True)
 
 # Initialize Cloudinary if keys are present
