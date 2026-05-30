@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api"
     
     # Database
-    DATABASE_URL: str = "sqlite:///./logistics.db"
+    DATABASE_URL: str = "sqlite:////tmp/logistics.db" if os.name != "nt" else "sqlite:///./logistics.db"
     
     # Security
     JWT_SECRET: str = "super_secure_jwt_secret_key_default_38128"
