@@ -45,6 +45,7 @@ interface GlobalState {
   setError: (err: string | null) => void;
   initializeAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, full_name: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchNotifications: () => Promise<void>;
   dismissNotification: (id: number) => Promise<void>;
@@ -93,6 +94,17 @@ export const useStore = create<GlobalState>((set, get) => ({
       get().fetchAnalytics();
     } catch (e: any) {
       set({ error: e.message || "Failed to log in.", isLoading: false });
+      throw e;
+    }
+  },
+
+  register: async (email, password, full_name, role) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.register(email, password, full_name, role);
+      set({ isLoading: false });
+    } catch (e: any) {
+      set({ error: e.message || "Registration failed.", isLoading: false });
       throw e;
     }
   },

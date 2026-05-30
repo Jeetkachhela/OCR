@@ -50,11 +50,11 @@ export const api = {
     return request("/auth/me");
   },
 
-  register: async (email: string, full_name: string, role: string) => {
+  register: async (email: string, password: string, full_name: string, role: string) => {
     return request("/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password: "defaultpassword123", full_name, role }),
+      body: JSON.stringify({ email, password, full_name, role }),
     });
   },
 
