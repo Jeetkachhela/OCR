@@ -132,6 +132,7 @@ app.include_router(admin_settings.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")
+@app.head("/")
 def read_root():
     return {
         "status": "healthy",
