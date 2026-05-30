@@ -38,31 +38,36 @@ app = FastAPI(
 
 # --- Subclassed Dynamic CORS Middleware to fix Starlette exception headers bug ---
 class DynamicCORSMiddleware(CORSMiddleware):
-    def is_allowed_origin(self, origin: str) -> bool:
-        if not origin:
-            return False
-            
-        # Check static allowed origins
-        if origin in self.allow_origins:
-            return True
-            
-        # Check dynamic subdomains
-        if origin.endswith(".vercel.app") or origin.endswith(".onrender.com"):
-            return True
-            
-        if "localhost" in origin or "127.0.0.1" in origin:
-            return True
-            
-        return False
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] not in ("http", "websocket"):
+            await self.app(scope, receive, send)
+            return
 
-app.add_middleware(
-    DynamicCORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-    allow_headers=["*"],
-    expose_headers=["Set-Cookie"],
-)
+        origin = None
+        for key, value in scope.get("headers", []):
+            if key == b"origin":
+                origin = value.decode("latin-1")
+                break
+
+        if origin:
+            allowed = False
+            if origin in self.allow_origins:
+                allowed = True
+            elif origin.endswith(".vercel.app") or origin.endswith(".onrender.com"):
+                allowed = True
+            elif "localhost" in origin or "127.0.0.1" in origin:
+                allowed = True
+
+            if allowed:
+                if origin not in self.allow_origins:
+                    self.allow_origins.append(origin)
+                if hasattr(self, "all_origins"):
+                    if isinstance(self.all_origins, set):
+                        self.all_origins.add(origin)
+                    elif isinstance(self.all_origins, list) and origin not in self.all_origins:
+                        self.all_origins.append(origin)
+
+        await super().__call__(scope, receive, send)
 
 # Custom Rate Limiter Middleware
 _request_records = {} # sliding window tracking
@@ -102,6 +107,17 @@ async def rate_limiting_middleware(request: Request, call_next):
     response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
     
     return response
+
+
+# Register Dynamic CORS Middleware at the very end to ensure it is the OUTERMOST middleware
+app.add_middleware(
+    DynamicCORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+    allow_headers=["*"],
+    expose_headers=["Set-Cookie"],
+)
 
 
 # --- WebSocket Core for Real-Time Dashboard updates ---
