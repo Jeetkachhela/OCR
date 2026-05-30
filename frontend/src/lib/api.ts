@@ -137,12 +137,21 @@ export const api = {
   getAdminSettings: async () => {
     return request("/admin/settings");
   },
-
   updateAdminSettings: async (settings: { rate_limiting_enabled: boolean; cdn_optimization_enabled: boolean; qdrant_sync_enabled: boolean; log_level: string }) => {
     return request("/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settings),
+    });
+  },
+
+  listUsers: async () => {
+    return request("/admin/settings/users");
+  },
+
+  toggleUserActive: async (userId: number) => {
+    return request(`/admin/settings/users/${userId}/toggle-active`, {
+      method: "PUT"
     });
   }
 };

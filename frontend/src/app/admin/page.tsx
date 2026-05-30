@@ -18,8 +18,18 @@ import {
   Lock, 
   FileText,
   CloudLightning,
-  Cpu
+  Cpu,
+  User
 } from "lucide-react";
+
+interface SystemUser {
+  id: number;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -32,16 +42,46 @@ export default function AdminPage() {
   const [logLevel, setLogLevel] = useState("INFO");
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
+  // User Management state
+  const [users, setUsers] = useState<SystemUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
   useEffect(() => {
     if (!isInitialized) {
       initializeAuth();
     }
   }, [isInitialized, initializeAuth]);
 
+  const fetchUsers = () => {
+    setIsLoadingUsers(true);
+    api.listUsers()
+      .then((data) => {
+        setUsers(data);
+        setIsLoadingUsers(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load platform users:", err);
+        setIsLoadingUsers(false);
+      });
+  };
+
+  const handleToggleUserActive = async (targetUserId: number) => {
+    try {
+      const res = await api.toggleUserActive(targetUserId);
+      setUsers(prev => prev.map(u => 
+        u.id === targetUserId ? { ...u, is_active: res.user.is_active } : u
+      ));
+    } catch (err: any) {
+      console.error("Failed to toggle user status:", err);
+      alert(err.message || "Failed to update user active status.");
+    }
+  };
+
   // Fetch settings from active REST API
   useEffect(() => {
     if (isInitialized && isAuthenticated && user?.role === "admin") {
       fetchAnalytics();
+      fetchUsers();
       
       // Get runtime settings
       api.getAdminSettings()
@@ -400,6 +440,88 @@ export default function AdminPage() {
               )}
             </div>
 
+          </div>
+
+          {/* User Management & Activation Controls */}
+          <div className="p-6 rounded-2xl border border-white/5 bg-white/5 glass-panel space-y-6">
+            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <div className="flex items-center gap-3">
+                <User className="text-blue-400" size={18} />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Operator User Management
+                </h3>
+              </div>
+              <span className="text-[10px] text-blue-400 font-bold uppercase border border-blue-500/25 bg-blue-500/10 px-2 py-0.5 rounded-full select-none">
+                Privilege Console Active
+              </span>
+            </div>
+
+            {isLoadingUsers ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="w-6 h-6 text-blue-500 animate-spin" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/5 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-2">Auditor Profile</th>
+                      <th className="py-3 px-2">Role</th>
+                      <th className="py-3 px-2">Email Address</th>
+                      <th className="py-3 px-2">Operator Status</th>
+                      <th className="py-3 px-2 text-right">State Toggle</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 font-medium">
+                    {users.map((u) => (
+                      <tr key={u.id} className="hover:bg-white/5 transition-colors text-slate-300">
+                        <td className="py-3.5 px-2 font-semibold text-white">
+                          {u.full_name || "Unassigned Name"}
+                        </td>
+                        <td className="py-3.5 px-2">
+                          <span className={`px-2.5 py-0.5 rounded-lg border text-[9px] font-bold uppercase font-mono ${
+                            u.role === "admin" 
+                              ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400" 
+                              : "border-blue-500/20 bg-blue-500/5 text-blue-400"
+                          }`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-2 text-slate-400 font-mono">
+                          {u.email}
+                        </td>
+                        <td className="py-3.5 px-2">
+                          <span className={`inline-flex items-center gap-1 font-bold text-[10px] ${
+                            u.is_active ? "text-emerald-400" : "text-slate-500"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              u.is_active ? "bg-emerald-500 animate-pulse" : "bg-slate-600"
+                            }`} />
+                            {u.is_active ? "ACTIVE OPERATIONAL" : "DEACTIVATED LOCKOUT"}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-2 text-right">
+                          {u.id === user.id ? (
+                            <span className="text-[10px] text-slate-600 italic">Self (Protected)</span>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleUserActive(u.id)}
+                              className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+                            >
+                              {u.is_active ? (
+                                <ToggleRight className="text-emerald-400 w-8 h-8 inline" />
+                              ) : (
+                                <ToggleLeft className="text-slate-600 w-8 h-8 inline" />
+                              )}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Core Audit Ledger: Expanded Activity logs */}

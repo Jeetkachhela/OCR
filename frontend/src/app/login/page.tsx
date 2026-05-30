@@ -153,14 +153,11 @@ export default function LoginPage() {
                   >
                     <option value="operator">Operator (Scan pipelines & manual correction)</option>
                     <option value="admin">Administrator (Macro analytics & configuration controls)</option>
-                    <option value="analyst">Analyst (Report generation & vectors search)</option>
-                    <option value="viewer">Viewer (Read-only operations log audits)</option>
                   </select>
                 </div>
               </div>
             </>
           )}
-
           {/* Email field */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
