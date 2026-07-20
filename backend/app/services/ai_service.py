@@ -44,12 +44,15 @@ class AIService:
                     "}"
                 )
                 
+                target_model = settings.active_groq_model
+                logger.info(f"Dispatching AI intelligence parsing request to Groq model: '{target_model}'")
+                
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": f"Document Filename: {filename}\nOCR Raw Text:\n{raw_text}"}
                     ],
-                    model="llama-3.1-8b-instant",
+                    model=target_model,
                     temperature=0.1,
                     max_tokens=1000
                 )
@@ -61,7 +64,7 @@ class AIService:
                     response_text = re.sub(r"\n```$", "", response_text)
                 
                 extracted_data = json.loads(response_text)
-                logger.info("Successfully extracted intelligence using Groq Llama-3 engine.")
+                logger.info(f"Successfully extracted intelligence using Groq '{target_model}' engine.")
             except Exception as e:
                 logger.warning(f"Groq API call encountered an error: {e}. Executing local fallback engine.")
 
